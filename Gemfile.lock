@@ -1,0 +1,33 @@
+PATH
+  remote: .
+  specs:
+    netlify_redirector (0.0.1)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    jwt (1.5.6)
+    metaclass (0.0.4)
+    minitest (5.10.1)
+    mocha (1.2.1)
+      metaclass (~> 0.0.1)
+    pkg-config (1.1.7)
+    rake (10.5.0)
+    rake-compiler (0.9.9)
+      rake
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  bundler (~> 1.7)
+  jwt (~> 1.5.6)
+  minitest (~> 5.10)
+  mocha (~> 1.2)
+  netlify_redirector!
+  pkg-config (~> 1.1.7)
+  rake (~> 10.0)
+  rake-compiler (~> 0.9)
+
+BUNDLED WITH
+   1.14.6
