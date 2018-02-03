@@ -40,7 +40,7 @@ case RUBY_PLATFORM
 when /darwin/
   libs << '-lnetlify-redirects_darwin'
   libs << '-lre2_darwin'
-when /linx/
+when /linux/
   libs << '-lre2_linux'
 else
   raise "Unsupported platform"
