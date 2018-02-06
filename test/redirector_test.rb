@@ -266,7 +266,7 @@ class TestRedirector < MiniTest::Unit::TestCase
       token = JWT.encode payload, "foobar", 'HS256'
 
       assert_equal(
-        {:to => "/admin/users", :status => 200, :force => true, :conditions => {"Role" => "admin"}},
+        {:to => "/admin/users", :status => 200, :force => true, :conditions => {"JWT" => "app_metadata.authorization.roles:admin"}},
         redirector.match(stub_everything(:path => "/admin/users", :cookies => {"nf_jwt" => token}))
       )
     end
@@ -289,7 +289,7 @@ class TestRedirector < MiniTest::Unit::TestCase
       token = JWT.encode payload, "foobar", 'HS256'
 
       assert_equal(
-        {:to => "/membership/free", :status => 200, :force => true, :conditions => {"Role" => "*"}},
+        {:to => "/membership/free", :status => 200, :force => true, :conditions => {"JWT" => "app_metadata.authorization.roles:*"}},
         redirector.match(stub_everything(:path => "/membership/", :cookies => {"nf_jwt" => token}))
       )
 
@@ -297,7 +297,7 @@ class TestRedirector < MiniTest::Unit::TestCase
       token = JWT.encode payload, "foobar", 'HS256'
 
       assert_equal(
-        {:to => "/membership/smashing", :status => 200, :force => true, :conditions => {"Role" => "smashing"}},
+        {:to => "/membership/smashing", :status => 200, :force => true, :conditions => {"JWT" => "app_metadata.authorization.roles:smashing"}},
         redirector.match(stub_everything(:path => "/membership/", :cookies => {"nf_jwt" => token}))
       )
     end

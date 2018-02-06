@@ -4,7 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <re2/re2.h>
-#include "request.h"
+#include "request.hpp"
 
 #ifndef RULE_H_
 #define RULE_H_
@@ -36,6 +36,25 @@ private:
   const ConditionType type;
 };
 
+class SigningPayload
+{
+public:
+  SigningPayload(
+      const string secret,
+      const string jwtSecret,
+      const string type,
+      const string header,
+      int expiresIn,
+      map<string, string> extraFields
+  );
+  const string secret;
+  const string jwtSecret;
+  const string type;
+  const string header;
+  int expiresIn;
+  const map<string, string> extraFields;
+};
+
 class RuleBuilder
 {
 public:
@@ -54,7 +73,10 @@ public:
   bool hasSplat;
   bool force404;
   vector<Param> params;
-  vector<Condition> conditions;;
+  vector<Condition> conditions;
+
+  std::shared_ptr<std::map<std::string, std::string>> proxyHeaders;
+  std::shared_ptr<SigningPayload> signer;
 
   std::shared_ptr<RE2> regexp;
   std::shared_ptr<std::vector<string>> captures;
@@ -94,7 +116,11 @@ public:
   const vector<Condition> conditions;
   const std::shared_ptr<RE2> regexp;
   const std::shared_ptr<std::vector<string>> captures;
+  const std::shared_ptr<std::map<std::string, std::string>> proxyHeaders;
+  const std::shared_ptr<SigningPayload> signer;
   const int capturesSize;
+
+
 
 private:
   bool matchCaptures(Request &request, string *result) const;

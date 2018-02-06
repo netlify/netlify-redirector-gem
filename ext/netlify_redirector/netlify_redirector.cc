@@ -1,10 +1,10 @@
 #include "ruby.h"
 #include <sstream>
 #include <re2/re2.h>
-#include <netlify-redirects/parser.h>
-#include <netlify-redirects/rule.h>
-#include <netlify-redirects/request.h>
-#include <netlify-redirects/matcher.h>
+#include <netlify-redirects/parser.hpp>
+#include <netlify-redirects/rule.hpp>
+#include <netlify-redirects/request.hpp>
+#include <netlify-redirects/matcher.hpp>
 #include <cstdio>
 
 using std::nothrow;

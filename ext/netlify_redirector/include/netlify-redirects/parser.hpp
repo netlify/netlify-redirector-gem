@@ -1,7 +1,7 @@
 #include <vector>
 #include <sstream>
 #include <map>
-#include "rule.h"
+#include "rule.hpp"
 
 #ifndef PARSER_H_
 #define PARSER_H_
@@ -27,6 +27,7 @@ class Parser
 {
 public:
    ParseResult parse(std::stringstream &rules);
+   ParseResult parseJSON(std::stringstream &rules);
 };
 
 #endif
