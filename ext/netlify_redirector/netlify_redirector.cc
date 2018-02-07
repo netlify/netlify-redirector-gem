@@ -47,7 +47,7 @@ static VALUE ruleToHash(const Rule &rule) {
   }
   if (!rule.conditions.empty()) {
     VALUE conditions = rb_hash_new();
-    for (auto iter : rule.conditions) {
+    for (const auto &iter : rule.conditions) {
       rb_hash_aset(conditions, rbString(iter.key), rbString(iter.value));
     }
     rb_hash_aset(hash, ID2SYM(rb_intern("conditions")), conditions);
@@ -107,27 +107,27 @@ public:
   RequestWrapper(VALUE request) : request(request) {
     env = rb_funcall(request, rb_intern("env"), 0);
   };
-  const std::string getHost() {
+  std::string getHost() {
     if (!host.empty()) return host;
     host = stdString(rb_funcall(request, rb_intern("host"), 0));
     return host;
   };
-  const std::string getScheme() {
+  std::string getScheme() {
     if (!scheme.empty()) return scheme;
     scheme = stdString(rb_funcall(request, rb_intern("scheme"), 0));
     return scheme;
   };
-  const std::string getPath() {
+  std::string getPath() {
     if (!path.empty()) return path;
     path = stdString(rb_funcall(request, rb_intern("path"), 0));
     return path;
   };
-  const std::string getQuery() {
+  std::string getQuery() {
     if (!query.empty()) return query;
     query = stdString(rb_funcall(request, rb_intern("query_string"), 0));
     return query;
   };
-  const std::string getHeader(const std::string &name) {
+  std::string getHeader(const std::string &name) {
     std::string &result = headers[name];
     if (!result.empty()) {
       return result;
@@ -141,7 +141,7 @@ public:
 
     return result;
   };
-  const std::string getCookieValue(const std::string &key) {
+ std::string getCookieValue(const std::string &key) {
     std::string &result = cookieValues[key];
     if (!result.empty()) {
       return result;

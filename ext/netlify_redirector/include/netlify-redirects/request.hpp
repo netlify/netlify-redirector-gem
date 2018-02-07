@@ -7,12 +7,12 @@
 class Request
 {
 public:
-  virtual const std::string getHost() = 0;
-  virtual const std::string getScheme() = 0;
-  virtual const std::string getPath() = 0;
-  virtual const std::string getQuery() = 0;
-  virtual const std::string getHeader(const std::string &name) = 0;
-  virtual const std::string getCookieValue(const std::string &key) = 0;
+  virtual std::string getHost() = 0;
+  virtual std::string getScheme() = 0;
+  virtual std::string getPath() = 0;
+  virtual std::string getQuery() = 0;
+  virtual std::string getHeader(const std::string &name) = 0;
+  virtual std::string getCookieValue(const std::string &key) = 0;
 };
 
 class BasicRequest : public Request
@@ -26,12 +26,12 @@ public:
     std::map<std::string, std::string> headers,
     std::map<std::string, std::string> cookieValues
   );
-  const std::string getHost();
-  const std::string getScheme();
-  const std::string getPath();
-  const std::string getQuery();
-  const std::string getHeader(const std::string &name);
-  const std::string getCookieValue(const std::string &key);
+  std::string getHost();
+  std::string getScheme();
+  std::string getPath();
+  std::string getQuery();
+  std::string getHeader(const std::string &name);
+  std::string getCookieValue(const std::string &key);
 private:
   std::string scheme;
   std::string host;

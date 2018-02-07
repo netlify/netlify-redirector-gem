@@ -24,6 +24,8 @@ class Condition
 {
 public:
   Condition(const string key, const string value);
+  Condition(Condition&& c) = default;
+
   ConditionResult match(Request &request, const string &secret, const string &roleClaim) const;
 
   const string key;
@@ -47,6 +49,8 @@ public:
       int expiresIn,
       map<string, string> extraFields
   );
+  SigningPayload(SigningPayload&& sp) = default;
+
   const string secret;
   const string jwtSecret;
   const string type;
@@ -59,6 +63,7 @@ class RuleBuilder
 {
 public:
   RuleBuilder();
+  RuleBuilder(RuleBuilder&& rb) = default;
 
   void compile();
 
@@ -88,6 +93,8 @@ class RuleMatch
 {
 public:
   RuleMatch(const string result, const bool negative);
+  RuleMatch(RuleMatch&& m) = default;
+
   const string result;
   const bool negative;
 };
@@ -95,7 +102,9 @@ public:
 class Rule
 {
 public:
-  Rule(const RuleBuilder &builder);
+  Rule(RuleBuilder &builder);
+  Rule(Rule&& r) = default;
+
   bool isProxy() const;
   bool hasConditions() const;
   bool hasParams() const;
@@ -113,14 +122,12 @@ public:
   const bool hasSplat;
   const bool force404;
   const vector<Param> params;
-  const vector<Condition> conditions;
+  vector<Condition> conditions;
   const std::shared_ptr<RE2> regexp;
   const std::shared_ptr<std::vector<string>> captures;
   const std::shared_ptr<std::map<std::string, std::string>> proxyHeaders;
   const std::shared_ptr<SigningPayload> signer;
   const int capturesSize;
-
-
 
 private:
   bool matchCaptures(Request &request, string *result) const;
