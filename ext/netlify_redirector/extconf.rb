@@ -26,6 +26,7 @@ end
 
 extension_name = 'netlify_redirector'
 
+$CFLAGS << " -fPIC -c -Wall -Wno-sign-compare -O3 -g"
 $CXXFLAGS << " -std=c++11"
 
 LIBDIR     = RbConfig::CONFIG['libdir']
