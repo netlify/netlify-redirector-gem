@@ -33,6 +33,9 @@ INCLUDEDIR = RbConfig::CONFIG['includedir']
 
 HEADER_DIRS = [INCLUDEDIR, File.expand_path(File.join(File.dirname(__FILE__), "include"))]
 
+have_library("re2")
+have_header("re2.h")
+
 # setup constant that is equal to that of the file path that holds that static libraries that will need to be compiled against
 LIB_DIRS = [LIBDIR, File.expand_path(File.join(File.dirname(__FILE__), "lib"))]
 libs = []
@@ -44,9 +47,6 @@ when /linux/
 else
   raise "Unsupported platform"
 end
-
-have_library("re2")
-have_header("re2.h")
 
 dir_config('openssl').any? or package_config('openssl')
 dir_config(extension_name, HEADER_DIRS, LIB_DIRS)       # The destination
