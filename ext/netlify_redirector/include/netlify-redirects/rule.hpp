@@ -3,11 +3,14 @@
 #include <vector>
 #include <iostream>
 #include <memory>
-#include <re2/re2.h>
 #include "request.hpp"
 
 #ifndef RULE_H_
 #define RULE_H_
+
+namespace re2 {
+  class RE2;
+}
 
 using namespace std;
 
@@ -83,7 +86,7 @@ public:
   std::shared_ptr<std::map<std::string, std::string>> proxyHeaders;
   std::shared_ptr<SigningPayload> signer;
 
-  std::shared_ptr<RE2> regexp;
+  std::shared_ptr<re2::RE2> regexp;
   std::shared_ptr<std::vector<string>> captures;
 private:
   void addCapture(const string &key);
@@ -123,7 +126,7 @@ public:
   const bool force404;
   const vector<Param> params;
   vector<Condition> conditions;
-  const std::shared_ptr<RE2> regexp;
+  const std::shared_ptr<re2::RE2> regexp;
   const std::shared_ptr<std::vector<string>> captures;
   const std::shared_ptr<std::map<std::string, std::string>> proxyHeaders;
   const std::shared_ptr<SigningPayload> signer;

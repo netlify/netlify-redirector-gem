@@ -1,6 +1,5 @@
 #include "ruby.h"
 #include <sstream>
-#include <re2/re2.h>
 #include <netlify-redirects/parser.hpp>
 #include <netlify-redirects/rule.hpp>
 #include <netlify-redirects/request.hpp>
@@ -8,7 +7,6 @@
 #include <cstdio>
 
 using std::nothrow;
-using re2::StringPiece;
 
 static VALUE Redirector = Qnil;
 
