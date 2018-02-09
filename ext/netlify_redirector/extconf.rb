@@ -39,13 +39,14 @@ libs = []
 case RUBY_PLATFORM
 when /darwin/
   libs << '-lnetlify-redirects_darwin'
-  libs << '-lre2_darwin'
 when /linux/
   libs << '-lnetlify-redirects_linux'
-  libs << '-lre2_linux'
 else
   raise "Unsupported platform"
 end
+
+have_library("re2")
+have_header("re2.h")
 
 dir_config('openssl').any? or package_config('openssl')
 dir_config(extension_name, HEADER_DIRS, LIB_DIRS)       # The destination
