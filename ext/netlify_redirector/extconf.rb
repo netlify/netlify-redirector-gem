@@ -41,6 +41,7 @@ when /darwin/
   libs << '-lnetlify-redirects_darwin'
   libs << '-lre2_darwin'
 when /linux/
+  libs << '-lnetlify-redirects_linux'
   libs << '-lre2_linux'
 else
   raise "Unsupported platform"
