@@ -74,22 +74,14 @@ static VALUE resultToMatch(const MatchResult &result) {
   if (!result.conditions.empty()) {
     VALUE conditions = rb_hash_new();
     for (auto &kv : result.conditions) {
-      std::string r = "";
-      for (auto &condition : kv.second) {
-        r = r.empty() ? condition : r + "," + condition;
-      }
-      rb_hash_aset(conditions, rbString(kv.first), rbString(r));
+      rb_hash_aset(conditions, rbString(kv.first), rbString(result.getCondition(kv.first)));
     }
     rb_hash_aset(hash, ID2SYM(rb_intern("conditions")), conditions);
   }
   if (!result.exceptions.empty()) {
     VALUE exceptions = rb_hash_new();
     for (auto &kv : result.exceptions) {
-      std::string r = "";
-      for (auto &exception : kv.second) {
-        r = r.empty() ? exception : r + "," + exception;
-      }
-      rb_hash_aset(exceptions, rbString(kv.first), rbString(r));
+      rb_hash_aset(exceptions, rbString(kv.first), rbString(result.getException(kv.first)));
     }
     rb_hash_aset(hash, ID2SYM(rb_intern("exceptions")), exceptions);
   }

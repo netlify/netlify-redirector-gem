@@ -14,10 +14,7 @@ class RedirectMatcher
   def match(request)
     res = NetlifyRedirector.new.match(@redirects, request, @options[:jwt_secret])
     self.conditions = res[:conditions]
-    self.exceptions = res[:exceptions] && res[:exceptions].each_with_object({}) do |(k,v), res|
-      next if conditions && conditions[k]
-      res[k] = v.split(',').sort
-    end
+    self.exceptions = res[:exceptions]
     res[:rule][:conditions] = conditions if res[:rule] && conditions
     res[:rule]
   end
@@ -93,7 +90,7 @@ class TestRedirector < MiniTest::Unit::TestCase
   def test_with_country_constraint_but_no_country_header
     redirector = RedirectMatcher.new([{:path => "/", :to => "/china", :status => 302, :conditions => {"Country" => "cn,tw"}}])
     assert_nil redirector.match(stub_everything(:path => "/", :env => {}))
-    assert_equal({"Country" => %w{cn tw}}, redirector.exceptions)
+    assert_equal(%w{cn tw}, redirector.exceptions["Country"].split(","))
   end
 
   def test_with_country_constraint_and_wrong_country_header
@@ -102,7 +99,7 @@ class TestRedirector < MiniTest::Unit::TestCase
       {:path => "/", :to => "/india", :status => 302, :conditions => {"Country" => "in"}}
     ])
     assert_nil redirector.match(stub_everything(:path => "/", :env => {"HTTP_X_COUNTRY" => "US"}))
-    assert_equal({"Country" => %w{cn in tw}}, redirector.exceptions)
+    assert_equal(%w{cn in tw}, redirector.exceptions["Country"].split(",").sort)
   end
 
   def test_with_country_constraint_and_matching_country
@@ -189,7 +186,8 @@ class TestRedirector < MiniTest::Unit::TestCase
     ])
 
     assert_nil redirector.match(stub_everything(:path => "/", :env => {}))
-    assert_equal({"Country" => ["cn","in"], "Language" => ["zh"]}, redirector.exceptions)
+    assert_equal ["cn", "in"], redirector.exceptions["Country"].split(",").sort
+    assert_equal ["zh"], redirector.exceptions["Language"].split(",").sort
 
     assert_equal(
       {:to => "/china", :status => 302, :force => true, :conditions => {"Country" => "cn"}},
@@ -207,7 +205,7 @@ class TestRedirector < MiniTest::Unit::TestCase
     )
 
     assert_nil redirector.match(stub_everything(:path => "/china", :env => {"HTTP_X_LANGUAGE" => "en"}))
-    assert_equal({"Language" => ["zh"]}, redirector.exceptions)
+    assert_equal({"Language" => "zh"}, redirector.exceptions)
 
     assert_equal(
       {:to => "/china/cn-zh/", :status => 302, :force => true, :conditions => {"Language" => "zh"}},
@@ -217,7 +215,7 @@ class TestRedirector < MiniTest::Unit::TestCase
     assert_nil redirector.match(stub_everything(:path => "/china/cn-zh", :env => {"HTTP_X_LANGUAGE" => "en"}))
 
     assert_nil redirector.match(stub_everything(:path => "/china/something", :env => {"HTTP_X_LANGUAGE" => "en"}))
-    assert_equal({"Language" => ["zh"]}, redirector.exceptions)
+    assert_equal({"Language" => "zh"}, redirector.exceptions)
 
     assert_equal(
       {:to => "/china/cn-zh/something", :force => true, :status => 302, :conditions => {"Language" => "zh"}},
@@ -300,6 +298,22 @@ class TestRedirector < MiniTest::Unit::TestCase
         {:to => "/membership/smashing", :status => 200, :force => true, :conditions => {"JWT" => "app_metadata.authorization.roles:smashing"}},
         redirector.match(stub_everything(:path => "/membership/", :cookies => {"nf_jwt" => token}))
       )
+    end
+
+    def test_redirector_with_roles_falls_back_to_unauthorized
+      redirector = RedirectMatcher.new([
+        {path: "/admin/*", to: "/admin/:splat", status: 200, conditions: {"Role" => "admin"}},
+        {path: "/admin/*", to: "/admin/editor/:splat", status: 200, conditions: {"Role" => "editor"}},
+        {path: "/admin/*", to: "/404", status: 404},
+      ], :jwt_secret => "foobar")
+
+      # site.stubs(:role_access_control_enabled?).returns(true)
+      # site.stubs(:jwt_role_path).with("admin").returns("app_metadata.authorization.roles:admin")
+      # site.stubs(:jwt_role_path).with("editor").returns("app_metadata.authorization.roles:editor")
+      # site.stubs(:jwt_role_path).with("admin,editor").returns("app_metadata.authorization.roles:admin,editor")
+
+      m = redirector.match(stub_everything(path: "/admin/users", cookies: {}))
+      assert_equal "app_metadata.authorization.roles:admin,editor", redirector.exceptions["JWT"]
     end
 
 
