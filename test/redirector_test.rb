@@ -4,7 +4,7 @@ require 'mocha/mini_test'
 require 'jwt'
 
 class RedirectMatcher
-  attr_accessor :conditions, :exceptions
+  attr_accessor :conditions, :exceptions, :force404
 
   def initialize(redirects, options = {})
     @redirects = redirects
@@ -12,9 +12,10 @@ class RedirectMatcher
   end
 
   def match(request)
-    res = NetlifyRedirector.new.match(@redirects, request, @options[:jwt_secret])
+    res = NetlifyRedirector.new.match(@redirects, request, @options[:jwt_secret], @options[:jwt_role_path])
     self.conditions = res[:conditions]
     self.exceptions = res[:exceptions]
+    self.force404 = res[:force_404]
     res[:rule][:conditions] = conditions if res[:rule] && conditions
     res[:rule]
   end
@@ -238,22 +239,22 @@ class TestRedirector < MiniTest::Unit::TestCase
     )
   end
 
-  def test_redirector_with_invalid_uri
-    redirector = RedirectMatcher.new([{
-      :path =>"/api/content/v1/parser",
-      :to =>"https://aws.readability.com/api/content/v1/parser?url=:url&token=:token",
-      :params =>{"url"=>":url", "token"=>":token"},
-      :status =>200,
-      :proxy =>true
-    }])
+  # def test_redirector_with_invalid_uri
+  #   redirector = RedirectMatcher.new([{
+  #     :path =>"/api/content/v1/parser",
+  #     :to =>"https://aws.readability.com/api/content/v1/parser?url=:url&token=:token",
+  #     :params =>{"url"=>":url", "token"=>":token"},
+  #     :status =>200,
+  #     :proxy =>true
+  #   }])
 
-    url = "http://www.china-files.com/it/link/49052/a-bollywood-arriva-la-«tassa-patriottica»-voluta-dagli-ultrahindu"
+  #   url = "http://www.china-files.com/it/link/49052/a-bollywood-arriva-la-«tassa-patriottica»-voluta-dagli-ultrahindu"
 
-    assert_equal(
-      {:to => "https://aws.readability.com/api/content/v1/parser?url=#{url}&token=token", :status => 200, :proxy => true},
-      redirector.match(stub_everything(:path => "/api/content/v1/parser", :query_string => "token=token&token=asdfafd&url=http%3A%2F%2Fwww.china-files.com%2Fit%2Flink%2F49052%2Fa-bollywood-arriva-la-%C2%ABtassa-patriottica%C2%BB-voluta-dagli-ultrahindu"))
-    )
-  end
+  #   assert_equal(
+  #     {:to => "https://aws.readability.com/api/content/v1/parser?url=#{url}&token=token", :status => 200, :proxy => true},
+  #     redirector.match(stub_everything(:path => "/api/content/v1/parser", :query_string => "token=token&token=asdfafd&url=http%3A%2F%2Fwww.china-files.com%2Fit%2Flink%2F49052%2Fa-bollywood-arriva-la-%C2%ABtassa-patriottica%C2%BB-voluta-dagli-ultrahindu"))
+  #   )
+  # end
 
   def test_redirector_with_roles
       redirector = RedirectMatcher.new([
@@ -307,154 +308,121 @@ class TestRedirector < MiniTest::Unit::TestCase
         {path: "/admin/*", to: "/404", status: 404},
       ], :jwt_secret => "foobar")
 
-      # site.stubs(:role_access_control_enabled?).returns(true)
-      # site.stubs(:jwt_role_path).with("admin").returns("app_metadata.authorization.roles:admin")
-      # site.stubs(:jwt_role_path).with("editor").returns("app_metadata.authorization.roles:editor")
-      # site.stubs(:jwt_role_path).with("admin,editor").returns("app_metadata.authorization.roles:admin,editor")
-
       m = redirector.match(stub_everything(path: "/admin/users", cookies: {}))
       assert_equal "app_metadata.authorization.roles:admin,editor", redirector.exceptions["JWT"]
     end
 
+    def test_redirector_with_multiple_roles
+      redirector = RedirectMatcher.new([
+        {:path => "/member/*", :to => "/member/:splat", :status => 200, :conditions => {"Role" => "admin,member"}}
+      ], :jwt_secret => "foobar")
 
-    #
-    # def test_redirector_with_multiple_roles
-    #   redirector = RedirectMatcher.new([
-    #     {:path => "/member/*", :to => "/member/:splat", :status => 200, :conditions => {"Role" => "admin,member"}}
-    #   ], :jwt_secret => "foobar")
-    #
-    #   site.stubs(:jwt_secret).returns("foobar")
-    #   site.stubs(:role_access_control_enabled?).returns(true)
-    #
-    #   payload = {"app_metadata" => {"authorization" => {"roles" => ["member"]}}}
-    #   token = JWT.encode payload, "foobar", 'HS256'
-    #
-    #   clear_cookies
-    #   set_cookie "nf_jwt=#{token}"
-    #   get "/members/users", {}, {'app.site' => site}
-    #
-    #   assert last_response.ok?
-    #   assert_equal "JWT=app_metadata.authorization.roles:admin,member", last_response.headers['X-BB-Conditions']
-    #   assert_equal "X-BB-Conditions", last_response.headers['Vary']
-    #   assert_equal "foobar", last_response.headers["X-BB-JWT-Secret"]
-    # end
-    #
-    # def test_redirector_with_multiple_roles_with_string_payload
-    #   redirector = RedirectMatcher.new([
-    #     {:path => "/member/*", :to => "/member/:splat", :status => 200, :conditions => {"Role" => "admin,member"}}
-    #   ], :jwt_secret => "foobar")
-    #
-    #   site.stubs(:jwt_secret).returns("foobar")
-    #   site.stubs(:role_access_control_enabled?).returns(true)
-    #
-    #   payload = {"app_metadata" => {"authorization" => {"roles" => "member"}}}
-    #   token = JWT.encode payload, "foobar", 'HS256'
-    #
-    #   clear_cookies
-    #   set_cookie "nf_jwt=#{token}"
-    #   get "/members/users", {}, {'app.site' => site}
-    #
-    #   assert last_response.ok?
-    #   assert_equal "JWT=app_metadata.authorization.roles:admin,member", last_response.headers['X-BB-Conditions']
-    #   assert_equal "X-BB-Conditions", last_response.headers['Vary']
-    #   assert_equal "foobar", last_response.headers["X-BB-JWT-Secret"]
-    # end
-    #
-    # def test_redirector_with_roles_falls_back_to_specific_role
-    #   redirector = RedirectMatcher.new([
-    #     {:path => "/admin/*", :to => "/admin/:splat", :status => 200, :conditions => {"Role" => "admin"}},
-    #     {:path => "/admin/*", :to => "/admin/editor/:splat", :status => 200, :conditions => {"Role" => "editor"}}
-    #   ], :jwt_secret => "foobar")
-    #
-    #   site.stubs(:jwt_secret).returns("foobar")
-    #   site.stubs(:role_access_control_enabled?).returns(true)
-    #   site.stubs(:jwt_role_path).with("admin").returns("app_metadata.authorization.roles:admin")
-    #   site.stubs(:jwt_role_path).with("editor").returns("app_metadata.authorization.roles:editor")
-    #
-    #   payload = {"app_metadata" => {"authorization" => {"roles" => ["editor"]}}}
-    #   token = JWT.encode payload, "foobar", 'HS256'
-    #
-    #   clear_cookies
-    #   set_cookie "nf_jwt=#{token}"
-    #   get "/admin/users", {}, {'app.site' => site}
-    #   assert last_response.ok?
-    #   assert_equal "JWT=app_metadata.authorization.roles:editor", last_response.headers['X-BB-Conditions']
-    #   assert_equal "X-BB-Conditions", last_response.headers['Vary']
-    #   assert_equal "foobar", last_response.headers["X-BB-JWT-Secret"]
-    # end
-    #
-    # def test_redirector_with_roles_falls_back_to_unauthorized
-    #   redirector = RedirectMatcher.new([
-    #     {:path => "/admin/*", :to => "/admin/:splat", :status => 200, :conditions => {"Role" => "admin"}},
-    #     {:path => "/admin/*", :to => "/admin/editor/:splat", :status => 200, :conditions => {"Role" => "editor"}},
-    #     {:path => "/admin/*", :to => "/404", :status => 404},
-    #   ], :jwt_secret => "foobar")
-    #
-    #   site.stubs(:jwt_secret).returns("foobar")
-    #   site.stubs(:role_access_control_enabled?).returns(true)
-    #   site.stubs(:jwt_role_path).with("admin").returns("app_metadata.authorization.roles:admin")
-    #   site.stubs(:jwt_role_path).with("editor").returns("app_metadata.authorization.roles:editor")
-    #
-    #   get "/admin/users", {}, {'app.site' => site}
-    #   assert last_response.not_found?, last_response.status
-    #   assert_equal "JWT=app_metadata.authorization.roles:admin,app_metadata.authorization.roles:editor", last_response.headers['X-BB-Except']
-    #   assert last_response.headers.include?("X-BB-JWT-Secret"), last_response.headers
-    #   assert last_response.headers.include?('Vary'), last_response.headers
-    #   refute last_response.headers.include?('X-BB-Conditions'), last_response.headers
-    # end
-    #
-    # def test_redirector_with_rules_with_login_fallback
-    #   redirector = RedirectMatcher.new([
-    #     {:path => "/admin/*", :to => "/admin/index.html", :status => "200!", :conditions => {"Role" => "admin"}},
-    #     {:path => "/admin/*", :to => "/admin/login.html", :status => "200!"},
-    #   ], :jwt_secret => "foobar")
-    #
-    #   site.stubs(:jwt_secret).returns("foobar")
-    #   site.stubs(:role_access_control_enabled?).returns(true)
-    #   site.stubs(:jwt_role_path).with("admin").returns("app_metadata.authorization.roles:admin")
-    #
-    #   get "/admin/users", {}, {'app.site' => site}
-    #   assert last_response.ok?
-    #   assert_equal "JWT=app_metadata.authorization.roles:admin", last_response.headers['X-BB-Except']
-    #   assert last_response.headers.include?('Vary'), last_response.headers
-    #   assert last_response.headers.include?("X-BB-JWT-Secret"), last_response.headers
-    #   refute last_response.headers.include?('X-BB-Conditions'), last_response.headers
-    # end
-    #
-    # def test_redirector_with_rules_without_fallback
-    #   redirector = RedirectMatcher.new([
-    #     {:path => "/admin/*", :to => "/admin/index.html", :status => "200!", :conditions => {"Role" => "admin"}}
-    #   ], :jwt_secret => "foobar")
-    #
-    #   site.stubs(:jwt_secret).returns("foobar")
-    #   site.stubs(:role_access_control_enabled?).returns(true)
-    #   site.stubs(:jwt_role_path).with("admin").returns("app_metadata.authorization.roles:admin")
-    #
-    #   get "/admin/users", {}, {'app.site' => site}
-    #   assert last_response.not_found?, last_response.status
-    #   refute last_response.headers.include?('X-BB-Except'), last_response.header
-    #   refute last_response.headers.include?('Vary'), last_response.headers
-    #   refute last_response.headers.include?('X-BB-Conditions'), last_response.headers
-    #   refute last_response.headers.include?("X-BB-JWT-Secret"), last_response.headers
-    # end
-    #
+      payload = {"app_metadata" => {"authorization" => {"roles" => ["member"]}}, "exp" => (Time.now + 600).to_i}
+      token = JWT.encode payload, "foobar", 'HS256'
+      m = redirector.match(stub_everything(path: "/member/users", cookies: {"nf_jwt" => token}))
+
+      assert m
+      assert_equal "app_metadata.authorization.roles:admin,member", redirector.conditions["JWT"]
+    end
+
+    def test_redirector_with_multiple_roles_with_string_payload
+      redirector = RedirectMatcher.new([
+        {:path => "/member/*", :to => "/member/:splat", :status => 200, :conditions => {"Role" => "admin,member"}}
+      ], :jwt_secret => "foobar")
+
+      payload = {"app_metadata" => {"authorization" => {"roles" => "member"}}, "exp" => (Time.now + 600).to_i}
+      token = JWT.encode payload, "foobar", 'HS256'
+
+      m = redirector.match(stub_everything(path: "/member/users", cookies: {"nf_jwt" => token}))
+
+      assert_equal "app_metadata.authorization.roles:admin,member", redirector.conditions["JWT"]
+    end
+
+    def test_redirector_with_roles_falls_back_to_specific_role
+      redirector = RedirectMatcher.new([
+        {:path => "/admin/*", :to => "/admin/:splat", :status => 200, :conditions => {"Role" => "admin"}},
+        {:path => "/admin/*", :to => "/admin/editor/:splat", :status => 200, :conditions => {"Role" => "editor"}}
+      ], :jwt_secret => "foobar")
+
+      payload = {"app_metadata" => {"authorization" => {"roles" => ["editor"]}}, "exp" => (Time.now + 600).to_i}
+      token = JWT.encode payload, "foobar", 'HS256'
+
+      m = redirector.match(stub_everything(path: "/admin/users", cookies: {"nf_jwt" => token}))
+
+      assert_equal "app_metadata.authorization.roles:editor", redirector.conditions["JWT"]
+    end
+
+    def test_redirector_with_roles_falls_back_to_unauthorized
+      redirector = RedirectMatcher.new([
+        {:path => "/admin/*", :to => "/admin/:splat", :status => 200, :conditions => {"Role" => "admin"}},
+        {:path => "/admin/*", :to => "/admin/editor/:splat", :status => 200, :conditions => {"Role" => "editor"}},
+        {:path => "/admin/*", :to => "/404", :status => 404},
+      ], :jwt_secret => "foobar")
+
+      m = redirector.match(stub_everything(path: "/admin/users"))
+
+      assert m
+      assert m[:status] == 404
+      assert_equal "app_metadata.authorization.roles:admin,editor", redirector.exceptions["JWT"]
+      assert_nil redirector.conditions
+    end
+
+    def test_redirector_with_rules_with_login_fallback
+      redirector = RedirectMatcher.new([
+        {:path => "/admin/*", :to => "/admin/index.html", :status => 200, :force => true, :conditions => {"Role" => "admin"}},
+        {:path => "/admin/*", :to => "/admin/login.html", :status => 200, :force => true},
+      ], :jwt_secret => "foobar")
+
+      m = redirector.match(stub_everything(path: "/admin/users"))
+
+      assert_equal "app_metadata.authorization.roles:admin", redirector.exceptions["JWT"]
+      assert_nil redirector.conditions
+    end
+
+    def test_redirector_with_rules_without_fallback
+      redirector = RedirectMatcher.new([
+        {:path => "/admin/*", :to => "/admin/index.html", :status => 200, :force => true, :conditions => {"Role" => "admin"}}
+      ], :jwt_secret => "foobar")
+      m = redirector.match(stub_everything(path: "/admin/users"))
+
+      assert redirector.force404
+      assert_equal "app_metadata.authorization.roles:admin", redirector.exceptions["JWT"]
+      assert_nil redirector.conditions
+    end
+
+    def test_redirector_with_jwt_rules_for_proxying
+      redirector = RedirectMatcher.new([
+        {path: "/private-api/*",
+          to: "https://rocky-beach-24637.herokuapp.com/private/:splat",
+          status: 200,
+          conditions: {"Role"=>["admin"]}
+        }
+      ], :jwt_secret => "foobar", :jwt_role_path => "app_metadata.roles")
+
+      payload = {"app_metadata" => {"roles" => ["admin"]}, "exp" => (Time.now + 600).to_i}
+      token = JWT.encode payload, "foobar", 'HS256'
+      m = redirector.match(stub_everything(path: "/private-api/1234", cookies: {"nf_jwt" => token}))
+      assert m
+      assert_equal 200, m[:status]
+      assert_equal "https://rocky-beach-24637.herokuapp.com/private/1234", m[:to]
+    end
     # def test_redirector_with_expired_jwt_token
     #   redirector = RedirectMatcher.new([
     #     {:path => "/admin/*", :to => "/admin/:splat", :status => 200, :conditions => {"Role" => "admin"}},
     #     {:path => "/admin/*", :to => "/admin/login.html", :status => "200!"},
     #   ], :jwt_secret => "foobar")
-    #
+
     #   site.stubs(:jwt_secret).returns("foobar")
     #   site.stubs(:role_access_control_enabled?).returns(true)
     #   site.stubs(:jwt_role_path).with("admin").returns("app_metadata.authorization.roles:admin")
-    #
+
     #   payload = {"exp" => (Time.now - 30).to_i, "app_metadata" => {"authorization" => {"roles" => ["admin"]}}}
     #   token = JWT.encode payload, "foobar", 'HS256'
-    #
+
     #   clear_cookies
     #   set_cookie "nf_jwt=#{token}"
     #   get "/admin/users", {}, {'app.site' => site}
-    #
+
     #   assert last_response.ok?
     #   assert_equal "JWT=app_metadata.authorization.roles:admin", last_response.headers['X-BB-Except']
     #   assert last_response.headers.include?('Vary'), last_response.headers

@@ -201,7 +201,11 @@ match(VALUE self, VALUE rules, VALUE request, VALUE secret, VALUE roleClaim)
       long keyLen = RARRAY_LEN(keys);
       for (long j=0; j<keyLen; j++) {
         VALUE key = rb_ary_entry(keys, j);
-        rule.conditions.push_back({stdString(key), stdString(rb_hash_aref(rbConditions, key))});
+        VALUE value = rb_hash_aref(rbConditions, key);
+        if (RB_TYPE_P(value, T_ARRAY)) {
+          value = rb_funcall(value, rb_intern("join"), 1, rb_str_new(",", 1));
+        }
+        rule.conditions.push_back({stdString(key), stdString(value)});
       }
     }
     VALUE rbParams = rb_hash_aref(el, ID2SYM(rb_intern("params")));
