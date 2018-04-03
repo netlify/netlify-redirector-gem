@@ -40,8 +40,8 @@ have_header("re2.h")
 LOCAL_LIB_DIR = File.expand_path(File.join(File.dirname(__FILE__), "lib"))
 LIB_DIRS = [LIBDIR, LOCAL_LIB_DIR]
 
-if !find_library("libnetlify-redirects", nil, LOCAL_LIB_DIR)
-  abort "Unable to find libnetlify-redirects library"
+if !find_library("netlify-redirects", nil, LOCAL_LIB_DIR)
+  abort "Unable to find netlify-redirects library"
 end
 
 dir_config('openssl').any? or package_config('openssl')
