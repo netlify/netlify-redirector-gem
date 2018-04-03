@@ -36,17 +36,11 @@ HEADER_DIRS = [INCLUDEDIR, File.expand_path(File.join(File.dirname(__FILE__), "i
 have_library("re2")
 have_header("re2.h")
 
+have_library("libnetlify-redirects")
+
 # setup constant that is equal to that of the file path that holds that static libraries that will need to be compiled against
 LIB_DIRS = [LIBDIR, File.expand_path(File.join(File.dirname(__FILE__), "lib"))]
 libs = []
-case RUBY_PLATFORM
-when /darwin/
-  libs << '-lnetlify-redirects_darwin'
-when /linux/
-  libs << '-lnetlify-redirects_linux'
-else
-  raise "Unsupported platform"
-end
 
 dir_config('openssl').any? or package_config('openssl')
 dir_config(extension_name, HEADER_DIRS, LIB_DIRS)       # The destination
