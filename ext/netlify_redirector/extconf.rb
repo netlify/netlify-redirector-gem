@@ -40,7 +40,25 @@ have_header("re2.h")
 LOCAL_LIB_DIR = File.expand_path(File.join(File.dirname(__FILE__), "lib"))
 LIB_DIRS = [LIBDIR, LOCAL_LIB_DIR]
 
-if !find_library("netlify-redirects", nil, LOCAL_LIB_DIR)
+libname = ""
+case RUBY_PLATFORM	
+when /darwin/	
+  libname = "netlify-redirects"
+when /linux/	
+  os_version = `grep DISTRIB_RELEASE /etc/lsb-release`
+  case os_version
+  when /16.04/
+    libname = "netlify-redirects-ubuntu16"
+  when /14.04/
+    libname = "netlify-redirects-ubuntu14"
+  else
+    raise "Unsupported linux platform"
+  end
+else	
+  raise "Unsupported platform"	
+end
+
+if !find_library(libname, nil, LOCAL_LIB_DIR)
   abort "Unable to find netlify-redirects library"
 end
 
