@@ -37,22 +37,14 @@ have_library("re2")
 have_header("re2.h")
 
 # setup constant that is equal to that of the file path that holds that static libraries that will need to be compiled against
-LIB_DIRS = [LIBDIR, File.expand_path(File.join(File.dirname(__FILE__), "lib"))]
-libs = []
-case RUBY_PLATFORM
-when /darwin/
-  libs << '-lnetlify-redirects_darwin'
-when /linux/
-  libs << '-lnetlify-redirects_linux'
-else
-  raise "Unsupported platform"
+LOCAL_LIB_DIR = File.expand_path(File.join(File.dirname(__FILE__), "lib"))
+LIB_DIRS = [LIBDIR, LOCAL_LIB_DIR]
+
+if !find_library("netlify-redirects", nil, LOCAL_LIB_DIR)
+  abort "Unable to find netlify-redirects library"
 end
 
 dir_config('openssl').any? or package_config('openssl')
 dir_config(extension_name, HEADER_DIRS, LIB_DIRS)       # The destination
-
-libs.each do |lib|
-  $LOCAL_LIBS << "#{lib} "
-end
 
 create_makefile(extension_name)  # Create Makefile
