@@ -41,21 +41,19 @@ LOCAL_LIB_DIR = File.expand_path(File.join(File.dirname(__FILE__), "lib"))
 LIB_DIRS = [LIBDIR, LOCAL_LIB_DIR]
 libs = []
 
-case RUBY_PLATFORM	
-when /darwin/	
+case RUBY_PLATFORM
+when /darwin/
   libs << '-lnetlify-redirects_darwin'
-when /linux/	
+when /linux/
   os_version = `grep DISTRIB_RELEASE /etc/lsb-release`
   case os_version
   when /16.04/
     libs << '-lnetlify-redirects_ubuntu16'
-  when /14.04/
-    libs << '-lnetlify-redirects_ubuntu14'
   else
-    raise "Unsupported linux platform"
+    libs << '-lnetlify-redirects_ubuntu14'
   end
-else	
-  raise "Unsupported platform"	
+else
+  raise "Unsupported platform"
 end
 
 dir_config('openssl').any? or package_config('openssl')
