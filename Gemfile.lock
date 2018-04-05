@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    netlify_redirector (0.1.3)
+    netlify_redirector (0.1.4)
 
 GEM
   remote: https://rubygems.org/
