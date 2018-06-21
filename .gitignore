@@ -1,3 +1,4 @@
 tmp/
 .vscode
 *.bundle
+lib/netlify_redirector/netlify_redirector.so
