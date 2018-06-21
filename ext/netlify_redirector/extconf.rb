@@ -49,8 +49,10 @@ when /linux/
   case os_version
   when /16.04/
     libs << '-lnetlify-redirects_ubuntu16'
-  else
+  when /14.04/
     libs << '-lnetlify-redirects_ubuntu14'
+  else
+    raise "Unsupported platform"
   end
 else
   raise "Unsupported platform"
@@ -59,8 +61,8 @@ end
 dir_config('openssl').any? or package_config('openssl')
 dir_config(extension_name, HEADER_DIRS, LIB_DIRS)       # The destination
 
-libs.each do |lib|	
-  $LOCAL_LIBS << "#{lib} "	
+libs.each do |lib|
+  $LOCAL_LIBS << "#{lib} "
 end
 
 create_makefile(extension_name)  # Create Makefile
