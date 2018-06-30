@@ -60,7 +60,7 @@ static VALUE ruleToHash(const Rule &rule) {
   return hash;
 }
 
-static VALUE resultToMatch(const MatchResult &result) {
+static VALUE resultToMatch(MatchResult &result) {
   VALUE hash = rb_hash_new();
   if (result.isMatch()) {
     VALUE rbRule = rb_hash_new();
