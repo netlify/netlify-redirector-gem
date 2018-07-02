@@ -1,10 +1,10 @@
 #include "ruby.h"
-#include <sstream>
-#include <netlify-redirects/parser.hpp>
-#include <netlify-redirects/rule.hpp>
-#include <netlify-redirects/request.hpp>
-#include <netlify-redirects/matcher.hpp>
 #include <cstdio>
+#include <netlify-redirects/matcher.hpp>
+#include <netlify-redirects/parser.hpp>
+#include <netlify-redirects/request.hpp>
+#include <netlify-redirects/rule.hpp>
+#include <sstream>
 
 using std::nothrow;
 
@@ -16,13 +16,13 @@ static VALUE rbString(std::string str) {
 
 static std::string stdString(VALUE string) {
   switch (TYPE(string)) {
-    case T_STRING:
-      return std::string(RSTRING_PTR(string), RSTRING_LEN(string));
-    case T_SYMBOL:
-      string = rb_funcall(string, rb_intern("to_s"), 0);
-      return std::string(RSTRING_PTR(string), RSTRING_LEN(string));
-    default:
-      return "";
+  case T_STRING:
+    return std::string(RSTRING_PTR(string), RSTRING_LEN(string));
+  case T_SYMBOL:
+    string = rb_funcall(string, rb_intern("to_s"), 0);
+    return std::string(RSTRING_PTR(string), RSTRING_LEN(string));
+  default:
+    return "";
   }
 }
 
@@ -53,19 +53,21 @@ static VALUE ruleToHash(const Rule &rule) {
   if (!rule.params.empty()) {
     VALUE params = rb_hash_new();
     for (auto iter : rule.params) {
-      rb_hash_aset(params, ID2SYM(rb_intern(iter.key.c_str())), rbString(iter.value));
+      rb_hash_aset(params, ID2SYM(rb_intern(iter.key.c_str())),
+                   rbString(iter.value));
     }
     rb_hash_aset(hash, ID2SYM(rb_intern("params")), params);
   }
   return hash;
 }
 
-static VALUE resultToMatch(const MatchResult &result) {
+static VALUE resultToMatch(MatchResult &result) {
   VALUE hash = rb_hash_new();
   if (result.isMatch()) {
     VALUE rbRule = rb_hash_new();
     rb_hash_aset(rbRule, ID2SYM(rb_intern("to")), rbString(result.match->to));
-    rb_hash_aset(rbRule, ID2SYM(rb_intern("status")), INT2NUM(result.match->status));
+    rb_hash_aset(rbRule, ID2SYM(rb_intern("status")),
+                 INT2NUM(result.match->status));
     if (result.match->forceMatch) {
       rb_hash_aset(rbRule, ID2SYM(rb_intern("force")), Qtrue);
     }
@@ -74,14 +76,16 @@ static VALUE resultToMatch(const MatchResult &result) {
   if (!result.conditions.empty()) {
     VALUE conditions = rb_hash_new();
     for (auto &kv : result.conditions) {
-      rb_hash_aset(conditions, rbString(kv.first), rbString(result.getCondition(kv.first)));
+      rb_hash_aset(conditions, rbString(kv.first),
+                   rbString(result.getCondition(kv.first)));
     }
     rb_hash_aset(hash, ID2SYM(rb_intern("conditions")), conditions);
   }
   if (!result.exceptions.empty()) {
     VALUE exceptions = rb_hash_new();
     for (auto &kv : result.exceptions) {
-      rb_hash_aset(exceptions, rbString(kv.first), rbString(result.getException(kv.first)));
+      rb_hash_aset(exceptions, rbString(kv.first),
+                   rbString(result.getException(kv.first)));
     }
     rb_hash_aset(hash, ID2SYM(rb_intern("exceptions")), exceptions);
   }
@@ -91,29 +95,32 @@ static VALUE resultToMatch(const MatchResult &result) {
   return hash;
 }
 
-class RequestWrapper : public Request
-{
+class RequestWrapper : public Request {
 public:
   RequestWrapper(VALUE request) : request(request) {
     env = rb_funcall(request, rb_intern("env"), 0);
   };
   std::string getHost() {
-    if (!host.empty()) return host;
+    if (!host.empty())
+      return host;
     host = stdString(rb_funcall(request, rb_intern("host"), 0));
     return host;
   };
   std::string getScheme() {
-    if (!scheme.empty()) return scheme;
+    if (!scheme.empty())
+      return scheme;
     scheme = stdString(rb_funcall(request, rb_intern("scheme"), 0));
     return scheme;
   };
   std::string getPath() {
-    if (!path.empty()) return path;
+    if (!path.empty())
+      return path;
     path = stdString(rb_funcall(request, rb_intern("path"), 0));
     return path;
   };
   std::string getQuery() {
-    if (!query.empty()) return query;
+    if (!query.empty())
+      return query;
     query = stdString(rb_funcall(request, rb_intern("query_string"), 0));
     return query;
   };
@@ -123,15 +130,17 @@ public:
       return result;
     }
     if (name == "X-Country") {
-      headers["X-Country"] = stdString(rb_hash_aref(env, rbString("HTTP_X_COUNTRY")));
+      headers["X-Country"] =
+          stdString(rb_hash_aref(env, rbString("HTTP_X_COUNTRY")));
     }
     if (name == "X-Language") {
-      headers["X-Language"] = stdString(rb_hash_aref(env, rbString("HTTP_X_LANGUAGE")));
+      headers["X-Language"] =
+          stdString(rb_hash_aref(env, rbString("HTTP_X_LANGUAGE")));
     }
 
     return result;
   };
- std::string getCookieValue(const std::string &key) {
+  std::string getCookieValue(const std::string &key) {
     std::string &result = cookieValues[key];
     if (!result.empty()) {
       return result;
@@ -142,6 +151,7 @@ public:
     }
     return result;
   }
+
 private:
   VALUE request;
   VALUE env;
@@ -153,21 +163,20 @@ private:
   std::map<std::string, std::string> cookieValues;
 };
 
-extern "C" VALUE
-parse(VALUE self, VALUE string) {
+extern "C" VALUE parse(VALUE self, VALUE string) {
   Parser parser;
   std::stringstream ss(stdString(string));
   ParseResult result(parser.parse(ss));
   VALUE parsedRules = rb_ary_new2(result.rules.size());
 
   int index = 0;
-  for (const Rule& rule : result.rules) {
+  for (const Rule &rule : result.rules) {
     rb_ary_store(parsedRules, index, ruleToHash(rule));
     index++;
   }
 
   VALUE parsedErrors = rb_hash_new();
-  for (const ParseError& error : result.errors) {
+  for (const ParseError &error : result.errors) {
     rb_hash_aset(parsedErrors, INT2NUM(error.lnum), rbString(error.line));
   }
 
@@ -177,12 +186,11 @@ parse(VALUE self, VALUE string) {
   return retval;
 }
 
-extern "C" VALUE
-match(VALUE self, VALUE rules, VALUE request, VALUE secret, VALUE roleClaim)
-{
+extern "C" VALUE match(VALUE self, VALUE rules, VALUE request, VALUE secret,
+                       VALUE roleClaim) {
   std::vector<Rule> rulesVector;
   long len = RARRAY_LEN(rules);
-  for (long i=0; i<len; i++) {
+  for (long i = 0; i < len; i++) {
     VALUE el = rb_ary_entry(rules, i);
     VALUE status = rb_hash_aref(el, ID2SYM(rb_intern("status")));
     VALUE force = rb_hash_aref(el, ID2SYM(rb_intern("force")));
@@ -199,7 +207,7 @@ match(VALUE self, VALUE rules, VALUE request, VALUE secret, VALUE roleClaim)
     if (rbConditions != Qnil) {
       VALUE keys = rb_funcall(rbConditions, rb_intern("keys"), 0);
       long keyLen = RARRAY_LEN(keys);
-      for (long j=0; j<keyLen; j++) {
+      for (long j = 0; j < keyLen; j++) {
         VALUE key = rb_ary_entry(keys, j);
         VALUE value = rb_hash_aref(rbConditions, key);
         if (RB_TYPE_P(value, T_ARRAY)) {
@@ -212,9 +220,10 @@ match(VALUE self, VALUE rules, VALUE request, VALUE secret, VALUE roleClaim)
     if (rbParams != Qnil) {
       VALUE keys = rb_funcall(rbParams, rb_intern("keys"), 0);
       long keyLen = RARRAY_LEN(keys);
-      for (long j=0; j<keyLen; j++) {
+      for (long j = 0; j < keyLen; j++) {
         VALUE key = rb_ary_entry(keys, j);
-        rule.params.push_back({stdString(key), stdString(rb_hash_aref(rbParams, key))});
+        rule.params.push_back(
+            {stdString(key), stdString(rb_hash_aref(rbParams, key))});
       }
     }
 
@@ -230,10 +239,8 @@ match(VALUE self, VALUE rules, VALUE request, VALUE secret, VALUE roleClaim)
   return resultToMatch(result);
 }
 
-extern "C" void
-Init_netlify_redirector()
-{
+extern "C" void Init_netlify_redirector() {
   Redirector = rb_const_get(rb_cObject, rb_intern("NetlifyRedirector"));
-  rb_define_method(Redirector, "match_rules", (VALUE (*)(...))match, 4);
-  rb_define_singleton_method(Redirector, "parse", (VALUE (*)(...))parse, 1);
+  rb_define_method(Redirector, "match_rules", (VALUE(*)(...))match, 4);
+  rb_define_singleton_method(Redirector, "parse", (VALUE(*)(...))parse, 1);
 }

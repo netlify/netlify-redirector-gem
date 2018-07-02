@@ -49,8 +49,6 @@ when /linux/
   case os_version
   when /16.04/
     libs << '-lnetlify-redirects_ubuntu16'
-  when /14.04/
-    libs << '-lnetlify-redirects_ubuntu14'
   else
     raise "Unsupported platform"
   end
